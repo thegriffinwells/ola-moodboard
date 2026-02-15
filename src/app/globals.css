@@ -21,7 +21,7 @@ body {
 /* Print styles for board export */
 @media print {
   @page {
-    size: letter portrait;
+    size: letter landscape;
     margin: 0;
   }
 

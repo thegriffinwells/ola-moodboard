@@ -14,11 +14,12 @@ export default function Home() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [gridConfig, setGridConfig] = useState<GridConfig>({
-    cols: 2,
-    rows: 2,
-    label: "4 per page",
+    cols: 3,
+    rows: 1,
+    label: "3 per page",
   });
   const [step, setStep] = useState<Step>("upload");
+  const [projectTitle, setProjectTitle] = useState("");
 
   const handleImagesAdded = useCallback((files: File[]) => {
     const newImages: ImageItem[] = files.map((file) => ({
@@ -74,10 +75,6 @@ export default function Home() {
     [images, selectedIds]
   );
 
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -87,20 +84,12 @@ export default function Home() {
             Ola Moodboard
           </h1>
           {step === "board" && (
-            <div className="flex gap-2">
-              <button
-                onClick={() => setStep("upload")}
-                className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
-              >
-                &larr; Back to Photos
-              </button>
-              <button
-                onClick={handlePrint}
-                className="px-4 py-2 text-sm rounded-lg bg-black text-white hover:bg-gray-800"
-              >
-                Print / Save PDF
-              </button>
-            </div>
+            <button
+              onClick={() => setStep("upload")}
+              className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+            >
+              &larr; Back to Photos
+            </button>
           )}
         </div>
       </header>
@@ -123,8 +112,28 @@ export default function Home() {
                   onRemoveImage={handleRemoveImage}
                 />
 
-                {/* Grid config + generate */}
+                {/* Grid config + project title + generate */}
                 <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+                  {/* Project title */}
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="project-title"
+                      className="text-sm font-semibold text-gray-700 uppercase tracking-wide block"
+                    >
+                      Project Title
+                    </label>
+                    <input
+                      id="project-title"
+                      type="text"
+                      value={projectTitle}
+                      onChange={(e) => setProjectTitle(e.target.value)}
+                      placeholder="e.g. Fall 2026 Lookbook"
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 text-sm
+                        focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-gray-400
+                        placeholder:text-gray-400"
+                    />
+                  </div>
+
                   <GridSizePicker
                     selected={gridConfig}
                     onSelect={setGridConfig}
@@ -147,13 +156,36 @@ export default function Home() {
 
         {step === "board" && (
           <div className="space-y-4">
-            <div className="print:hidden bg-white rounded-xl border border-gray-200 p-4">
+            <div className="print:hidden bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+              {/* Editable project title in board view */}
+              <div className="flex items-center gap-3">
+                <label
+                  htmlFor="board-title"
+                  className="text-sm font-semibold text-gray-700 uppercase tracking-wide shrink-0"
+                >
+                  Title
+                </label>
+                <input
+                  id="board-title"
+                  type="text"
+                  value={projectTitle}
+                  onChange={(e) => setProjectTitle(e.target.value)}
+                  placeholder="Add a project title..."
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-300 text-sm
+                    focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-gray-400
+                    placeholder:text-gray-400"
+                />
+              </div>
               <GridSizePicker
                 selected={gridConfig}
                 onSelect={setGridConfig}
               />
             </div>
-            <BoardPreview images={selectedImages} gridConfig={gridConfig} />
+            <BoardPreview
+              images={selectedImages}
+              gridConfig={gridConfig}
+              projectTitle={projectTitle}
+            />
           </div>
         )}
       </main>

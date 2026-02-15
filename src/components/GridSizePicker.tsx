@@ -9,8 +9,9 @@ export interface GridConfig {
 const GRID_OPTIONS: GridConfig[] = [
   { cols: 1, rows: 1, label: "1 per page" },
   { cols: 1, rows: 2, label: "2 per page" },
+  { cols: 3, rows: 1, label: "3 per page" },
   { cols: 2, rows: 2, label: "4 per page" },
-  { cols: 2, rows: 3, label: "6 per page" },
+  { cols: 3, rows: 2, label: "6 per page" },
   { cols: 3, rows: 3, label: "9 per page" },
   { cols: 4, rows: 3, label: "12 per page" },
 ];
