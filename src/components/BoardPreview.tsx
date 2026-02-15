@@ -45,7 +45,7 @@ export default function BoardPreview({
           style={{ aspectRatio: "8.5 / 11" }}
         >
           <div
-            className="grid h-full w-full p-2 gap-2"
+            className="grid h-full w-full"
             style={{
               gridTemplateColumns: `repeat(${gridConfig.cols}, 1fr)`,
               gridTemplateRows: `repeat(${gridConfig.rows}, 1fr)`,
@@ -54,12 +54,12 @@ export default function BoardPreview({
             {pageImages.map((img) => (
               <div
                 key={img.id}
-                className="relative overflow-hidden rounded bg-gray-100"
+                className="relative overflow-hidden border-[0.5px] border-gray-100 flex items-center justify-center bg-white p-2"
               >
                 <img
                   src={img.url}
                   alt=""
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                 />
               </div>
             ))}
@@ -67,7 +67,10 @@ export default function BoardPreview({
             {pageImages.length < perPage &&
               Array.from({ length: perPage - pageImages.length }).map(
                 (_, i) => (
-                  <div key={`empty-${i}`} className="bg-gray-50 rounded" />
+                  <div
+                    key={`empty-${i}`}
+                    className="border-[0.5px] border-gray-100 bg-white"
+                  />
                 )
               )}
           </div>

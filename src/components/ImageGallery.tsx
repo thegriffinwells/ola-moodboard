@@ -82,7 +82,7 @@ export default function ImageGallery({
               <button
                 onClick={() => onToggleSelect(img.id)}
                 className={`
-                  relative w-full aspect-square overflow-hidden rounded-lg
+                  relative w-full aspect-[3/4] overflow-hidden rounded-lg
                   border-3 transition-all duration-150
                   ${
                     isSelected
@@ -94,7 +94,7 @@ export default function ImageGallery({
                 <img
                   src={img.url}
                   alt=""
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
                 {isSelected && (
                   <div className="absolute top-1 right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
