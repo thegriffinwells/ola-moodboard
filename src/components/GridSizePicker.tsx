@@ -1,10 +1,8 @@
 "use client";
 
-export interface GridConfig {
-  cols: number;
-  rows: number;
-  label: string;
-}
+import type { GridConfig } from "@/types";
+
+export type { GridConfig };
 
 const GRID_OPTIONS: GridConfig[] = [
   { cols: 1, rows: 1, label: "1 per page" },

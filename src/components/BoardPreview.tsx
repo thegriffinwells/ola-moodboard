@@ -1,13 +1,18 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { ImageItem } from "./ImageGallery";
-import type { GridConfig } from "./GridSizePicker";
+import type { ImageItem } from "@/types";
+import type { GridConfig } from "@/types";
 
 interface BoardPreviewProps {
   images: ImageItem[];
   gridConfig: GridConfig;
   projectTitle: string;
+}
+
+interface Section {
+  label: string;
+  images: ImageItem[];
 }
 
 export default function BoardPreview({
@@ -19,13 +24,58 @@ export default function BoardPreview({
   const pagesRef = useRef<(HTMLDivElement | null)[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const pages = useMemo(() => {
-    const result: ImageItem[][] = [];
-    for (let i = 0; i < images.length; i += perPage) {
-      result.push(images.slice(i, i + perPage));
+  // Group images by category into sections
+  const sections = useMemo<Section[]>(() => {
+    const hasAnyCategory = images.some((img) => img.category);
+    if (!hasAnyCategory) {
+      // No categories assigned — single section, use project title
+      return [{ label: projectTitle, images }];
+    }
+
+    const categoryMap = new Map<string, ImageItem[]>();
+    const uncategorized: ImageItem[] = [];
+
+    for (const img of images) {
+      if (img.category) {
+        const list = categoryMap.get(img.category) || [];
+        list.push(img);
+        categoryMap.set(img.category, list);
+      } else {
+        uncategorized.push(img);
+      }
+    }
+
+    const result: Section[] = [];
+    // Sort categories alphabetically
+    const sortedCategories = Array.from(categoryMap.keys()).sort();
+    for (const cat of sortedCategories) {
+      result.push({ label: cat, images: categoryMap.get(cat)! });
+    }
+    if (uncategorized.length > 0) {
+      result.push({ label: projectTitle || "Uncategorized", images: uncategorized });
     }
     return result;
-  }, [images, perPage]);
+  }, [images, projectTitle]);
+
+  // Flatten all pages across sections for PDF export
+  const allPages = useMemo(() => {
+    const pages: { sectionLabel: string; images: ImageItem[]; pageInSection: number; totalInSection: number }[] = [];
+    for (const section of sections) {
+      const sectionPages: ImageItem[][] = [];
+      for (let i = 0; i < section.images.length; i += perPage) {
+        sectionPages.push(section.images.slice(i, i + perPage));
+      }
+      sectionPages.forEach((pageImages, idx) => {
+        pages.push({
+          sectionLabel: section.label,
+          images: pageImages,
+          pageInSection: idx + 1,
+          totalInSection: sectionPages.length,
+        });
+      });
+    }
+    return pages;
+  }, [sections, perPage]);
 
   const handleSavePdf = useCallback(async () => {
     setSaving(true);
@@ -35,7 +85,6 @@ export default function BoardPreview({
         import("html2canvas"),
       ]);
 
-      // Landscape letter: 11 x 8.5 inches
       const pdf = new jsPDF({ orientation: "landscape", unit: "in", format: "letter" });
       const pageWidth = 11;
       const pageHeight = 8.5;
@@ -62,7 +111,6 @@ export default function BoardPreview({
       pdf.save(filename);
     } catch (err) {
       console.error("PDF export failed:", err);
-      // Fallback to browser print
       window.print();
     } finally {
       setSaving(false);
@@ -80,11 +128,14 @@ export default function BoardPreview({
   return (
     <div className="space-y-8 board-preview">
       <div className="print:hidden text-sm text-gray-500 text-center">
-        {images.length} photos across {pages.length} page
-        {pages.length !== 1 ? "s" : ""} &middot; {gridConfig.label}
+        {images.length} photos across {allPages.length} page
+        {allPages.length !== 1 ? "s" : ""} &middot; {gridConfig.label}
+        {sections.length > 1 && (
+          <> &middot; {sections.length} categories</>
+        )}
       </div>
 
-      {pages.map((pageImages, pageIdx) => (
+      {allPages.map((page, pageIdx) => (
         <div
           key={pageIdx}
           ref={(el) => { pagesRef.current[pageIdx] = el; }}
@@ -92,14 +143,14 @@ export default function BoardPreview({
           style={{ aspectRatio: "11 / 8.5" }}
         >
           <div className="flex flex-col h-full w-full">
-            {/* Page title bar */}
-            {projectTitle && (
+            {/* Page title bar — shows category name or project title */}
+            {page.sectionLabel && (
               <div className="shrink-0 px-4 py-2 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-800 tracking-wide uppercase">
-                  {projectTitle}
+                  {page.sectionLabel}
                 </h2>
                 <span className="text-xs text-gray-400">
-                  {pageIdx + 1} / {pages.length}
+                  {page.pageInSection} / {page.totalInSection}
                 </span>
               </div>
             )}
@@ -111,7 +162,7 @@ export default function BoardPreview({
                 gridTemplateRows: `repeat(${gridConfig.rows}, 1fr)`,
               }}
             >
-              {pageImages.map((img) => (
+              {page.images.map((img) => (
                 <div
                   key={img.id}
                   className="relative overflow-hidden border-[0.5px] border-gray-100 flex items-center justify-center bg-white p-2"
@@ -123,9 +174,9 @@ export default function BoardPreview({
                   />
                 </div>
               ))}
-              {/* Fill empty cells on last page */}
-              {pageImages.length < perPage &&
-                Array.from({ length: perPage - pageImages.length }).map(
+              {/* Fill empty cells on last page of section */}
+              {page.images.length < perPage &&
+                Array.from({ length: perPage - page.images.length }).map(
                   (_, i) => (
                     <div
                       key={`empty-${i}`}

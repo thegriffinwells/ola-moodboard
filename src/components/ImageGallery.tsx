@@ -1,16 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import type { ImageItem } from "@/types";
 
-export interface ImageItem {
-  id: string;
-  file: File;
-  url: string;
-}
+export type { ImageItem };
 
 interface ImageGalleryProps {
   images: ImageItem[];
   selectedIds: Set<string>;
+  categories?: string[];
   onToggleSelect: (id: string) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
@@ -20,6 +18,7 @@ interface ImageGalleryProps {
 export default function ImageGallery({
   images,
   selectedIds,
+  categories = [],
   onToggleSelect,
   onSelectAll,
   onDeselectAll,
@@ -28,14 +27,23 @@ export default function ImageGallery({
   const [filter, setFilter] = useState<"all" | "selected" | "unselected">(
     "all"
   );
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const filtered = useMemo(() => {
+    let result = images;
+
     if (filter === "selected")
-      return images.filter((img) => selectedIds.has(img.id));
-    if (filter === "unselected")
-      return images.filter((img) => !selectedIds.has(img.id));
-    return images;
-  }, [images, selectedIds, filter]);
+      result = result.filter((img) => selectedIds.has(img.id));
+    else if (filter === "unselected")
+      result = result.filter((img) => !selectedIds.has(img.id));
+
+    if (categoryFilter === "uncategorized")
+      result = result.filter((img) => !img.category);
+    else if (categoryFilter !== "all")
+      result = result.filter((img) => img.category === categoryFilter);
+
+    return result;
+  }, [images, selectedIds, filter, categoryFilter]);
 
   return (
     <div className="space-y-4">
@@ -57,20 +65,36 @@ export default function ImageGallery({
             Deselect All
           </button>
         </div>
-        <div className="flex gap-1">
-          {(["all", "selected", "unselected"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`text-xs px-3 py-1 rounded-full capitalize ${
-                filter === f
-                  ? "bg-black text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
+        <div className="flex items-center gap-2">
+          {categories.length > 0 && (
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="text-xs px-2 py-1 rounded-lg border border-gray-300 bg-white text-gray-700
+                focus:outline-none focus:ring-2 focus:ring-black/20"
             >
-              {f}
-            </button>
-          ))}
+              <option value="all">All categories</option>
+              <option value="uncategorized">Uncategorized</option>
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          )}
+          <div className="flex gap-1">
+            {(["all", "selected", "unselected"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`text-xs px-3 py-1 rounded-full capitalize ${
+                  filter === f
+                    ? "bg-black text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -114,6 +138,13 @@ export default function ImageGallery({
                   </div>
                 )}
               </button>
+              {img.category && (
+                <div className="absolute bottom-1 left-1 right-1 flex justify-center pointer-events-none">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/70 text-white truncate max-w-full">
+                    {img.category}
+                  </span>
+                </div>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
