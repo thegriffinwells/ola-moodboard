@@ -266,7 +266,7 @@ export default function BoardViewClient({ board, images, annotations }: Props) {
                         }`}
                       >
                         <img
-                          src={`/api/images/${img.filename}`}
+                          src={img.filename}
                           alt={img.original_name}
                           className="max-w-full max-h-full object-contain"
                         />

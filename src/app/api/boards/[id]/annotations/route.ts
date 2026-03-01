@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
-import db from "@/lib/db";
-import type { BoardRecord } from "@/types";
+import { getDb } from "@/lib/db";
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const db = await getDb();
 
-  const board = db
-    .prepare(`SELECT * FROM boards WHERE id = ?`)
-    .get(id) as BoardRecord | undefined;
+  const boardResult = await db.execute({
+    sql: `SELECT * FROM boards WHERE id = ?`,
+    args: [id],
+  });
 
-  if (!board) {
+  if (boardResult.rows.length === 0) {
     return NextResponse.json({ error: "Board not found" }, { status: 404 });
   }
 
@@ -20,27 +21,23 @@ export async function PUT(
     annotations: { imageId: number; selected: boolean; note: string }[];
   };
 
-  const upsert = db.prepare(`
-    INSERT INTO annotations (board_id, image_id, selected, note)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(board_id, image_id) DO UPDATE SET
-      selected = excluded.selected,
-      note = excluded.note,
-      created_at = datetime('now')
-  `);
+  const statements = [
+    ...annotations.map((a) => ({
+      sql: `INSERT INTO annotations (board_id, image_id, selected, note)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(board_id, image_id) DO UPDATE SET
+              selected = excluded.selected,
+              note = excluded.note,
+              created_at = datetime('now')`,
+      args: [id, a.imageId, a.selected ? 1 : 0, a.note],
+    })),
+    {
+      sql: `UPDATE boards SET status = 'reviewed' WHERE id = ?`,
+      args: [id],
+    },
+  ];
 
-  const updateStatus = db.prepare(
-    `UPDATE boards SET status = 'reviewed' WHERE id = ?`
-  );
-
-  const transaction = db.transaction(() => {
-    for (const a of annotations) {
-      upsert.run(id, a.imageId, a.selected ? 1 : 0, a.note);
-    }
-    updateStatus.run(id);
-  });
-
-  transaction();
+  await db.batch(statements, "write");
 
   return NextResponse.json({ success: true });
 }

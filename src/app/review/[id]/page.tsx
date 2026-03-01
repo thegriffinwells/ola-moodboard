@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import { getDb } from "@/lib/db";
 import type { BoardRecord, BoardImageRecord } from "@/types";
 import { notFound } from "next/navigation";
 import ReviewClient from "./ReviewClient";
@@ -9,16 +9,22 @@ interface Props {
 
 export default async function ReviewPage({ params }: Props) {
   const { id } = await params;
+  const db = await getDb();
 
-  const board = db
-    .prepare("SELECT * FROM boards WHERE id = ?")
-    .get(id) as BoardRecord | undefined;
+  const boardResult = await db.execute({
+    sql: "SELECT * FROM boards WHERE id = ?",
+    args: [id],
+  });
 
-  if (!board) notFound();
+  if (boardResult.rows.length === 0) notFound();
 
-  const images = db
-    .prepare("SELECT * FROM board_images WHERE board_id = ? ORDER BY sort_order")
-    .all(id) as BoardImageRecord[];
+  const board = boardResult.rows[0] as unknown as BoardRecord;
+
+  const imagesResult = await db.execute({
+    sql: "SELECT * FROM board_images WHERE board_id = ? ORDER BY sort_order",
+    args: [id],
+  });
+  const images = imagesResult.rows as unknown as BoardImageRecord[];
 
   return <ReviewClient board={board} images={images} />;
 }

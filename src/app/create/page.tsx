@@ -59,12 +59,12 @@ export default function CreatePage() {
 
       if (!uploadRes.ok) throw new Error(uploadData.error);
 
-      // 2. Create the board with uploaded filenames
+      // 2. Create the board with uploaded blob URLs
       const boardImages = uploadData.files.map(
-        (f: { filename: string; originalName: string }, i: number) => {
+        (f: { url: string; originalName: string }, i: number) => {
           const sourceImg = selectedImages[i];
           return {
-            filename: f.filename,
+            url: f.url,
             originalName: f.originalName,
             category: sourceImg?.category || undefined,
           };

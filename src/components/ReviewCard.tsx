@@ -35,7 +35,7 @@ export default function ReviewCard({
         `}
       >
         <img
-          src={`/api/images/${image.filename}`}
+          src={image.filename}
           alt={image.original_name}
           className="w-full h-full object-contain bg-white"
         />

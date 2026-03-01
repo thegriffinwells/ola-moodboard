@@ -1,4 +1,4 @@
-import db from "@/lib/db";
+import { getDb } from "@/lib/db";
 import type { BoardRecord, BoardImageRecord, AnnotationRecord } from "@/types";
 import { notFound } from "next/navigation";
 import BoardViewClient from "./BoardViewClient";
@@ -9,20 +9,28 @@ interface Props {
 
 export default async function BoardPage({ params }: Props) {
   const { id } = await params;
+  const db = await getDb();
 
-  const board = db
-    .prepare("SELECT * FROM boards WHERE id = ?")
-    .get(id) as BoardRecord | undefined;
+  const boardResult = await db.execute({
+    sql: "SELECT * FROM boards WHERE id = ?",
+    args: [id],
+  });
 
-  if (!board) notFound();
+  if (boardResult.rows.length === 0) notFound();
 
-  const images = db
-    .prepare("SELECT * FROM board_images WHERE board_id = ? ORDER BY sort_order")
-    .all(id) as BoardImageRecord[];
+  const board = boardResult.rows[0] as unknown as BoardRecord;
 
-  const annotations = db
-    .prepare("SELECT * FROM annotations WHERE board_id = ?")
-    .all(id) as AnnotationRecord[];
+  const imagesResult = await db.execute({
+    sql: "SELECT * FROM board_images WHERE board_id = ? ORDER BY sort_order",
+    args: [id],
+  });
+  const images = imagesResult.rows as unknown as BoardImageRecord[];
+
+  const annotationsResult = await db.execute({
+    sql: "SELECT * FROM annotations WHERE board_id = ?",
+    args: [id],
+  });
+  const annotations = annotationsResult.rows as unknown as AnnotationRecord[];
 
   return (
     <BoardViewClient
