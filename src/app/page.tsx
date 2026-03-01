@@ -1,152 +1,97 @@
 "use client";
 
 import { useState } from "react";
-import type { AppTab } from "@/types";
-import ImageUploader from "@/components/ImageUploader";
-import ImageGallery from "@/components/ImageGallery";
-import GridSizePicker from "@/components/GridSizePicker";
-import BoardPreview from "@/components/BoardPreview";
-import CategoryAssigner from "@/components/CategoryAssigner";
-import TabBar from "@/components/TabBar";
-import VendorTrackingTab from "@/components/VendorTrackingTab";
-import useMoodboard from "@/hooks/useMoodboard";
-import useVendorTracking from "@/hooks/useVendorTracking";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<AppTab>("moodboard");
+  const router = useRouter();
+  const [reviewLink, setReviewLink] = useState("");
 
-  const {
-    images,
-    selectedIds,
-    gridConfig,
-    setGridConfig,
-    step,
-    setStep,
-    projectTitle,
-    setProjectTitle,
-    selectedImages,
-    categories,
-    handleImagesAdded,
-    handleToggleSelect,
-    handleSelectAll,
-    handleDeselectAll,
-    handleRemoveImage,
-    handleAssignCategory,
-    handleRemoveCategory,
-  } = useMoodboard();
+  const handleStylistGo = () => {
+    const trimmed = reviewLink.trim();
+    if (!trimmed) return;
 
-  const vendorTracking = useVendorTracking();
+    // Accept full URLs or just the path/ID
+    if (trimmed.startsWith("http")) {
+      try {
+        const url = new URL(trimmed);
+        router.push(url.pathname);
+      } catch {
+        return;
+      }
+    } else if (trimmed.startsWith("/")) {
+      router.push(trimmed);
+    } else {
+      // Assume it's just the board ID
+      router.push(`/review/${trimmed}`);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="print:hidden bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold tracking-tight">
-                Ola Moodboard
-              </h1>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-lg w-full space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Ola Moodboard</h1>
+          <p className="text-gray-500">Choose your role to get started</p>
+        </div>
+
+        <div className="space-y-4">
+          {/* Assistant Button */}
+          <button
+            onClick={() => router.push("/create")}
+            className="w-full p-6 bg-white rounded-xl border-2 border-gray-200
+              hover:border-black hover:shadow-md transition-all text-left space-y-2 group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold group-hover:text-black">
+                I&apos;m the Assistant
+              </span>
+              <span className="text-2xl">&#8594;</span>
+            </div>
+            <p className="text-sm text-gray-500">
+              Upload photos, build moodboards, and share them with your stylist
+              for review.
+            </p>
+          </button>
+
+          {/* Stylist Section */}
+          <div
+            className="w-full p-6 bg-white rounded-xl border-2 border-gray-200
+              space-y-4"
+          >
+            <div>
+              <span className="text-lg font-semibold">
+                I&apos;m the Stylist
+              </span>
+              <p className="text-sm text-gray-500 mt-1">
+                Paste the review link your assistant shared with you.
+              </p>
+            </div>
+            <div className="flex gap-2">
               <input
                 type="text"
-                value={projectTitle}
-                onChange={(e) => setProjectTitle(e.target.value)}
-                placeholder="Project title..."
-                className="px-3 py-1 rounded-lg border border-gray-200 text-sm
+                value={reviewLink}
+                onChange={(e) => setReviewLink(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleStylistGo();
+                }}
+                placeholder="Paste review link or board ID..."
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm
                   focus:outline-none focus:ring-2 focus:ring-black/20 focus:border-gray-400
-                  placeholder:text-gray-400 w-48"
+                  placeholder:text-gray-400"
               />
-            </div>
-            {activeTab === "moodboard" && step === "board" && (
               <button
-                onClick={() => setStep("upload")}
-                className="px-4 py-2 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+                onClick={handleStylistGo}
+                disabled={!reviewLink.trim()}
+                className="px-5 py-2 rounded-lg bg-black text-white text-sm font-medium
+                  hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
               >
-                &larr; Back to Photos
+                Go
               </button>
-            )}
+            </div>
           </div>
-          <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
         </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        {/* Moodboard Tab */}
-        {activeTab === "moodboard" && (
-          <>
-            {step === "upload" && (
-              <div className="space-y-6">
-                <ImageUploader onImagesAdded={handleImagesAdded} />
-
-                {images.length > 0 && (
-                  <>
-                    <ImageGallery
-                      images={images}
-                      selectedIds={selectedIds}
-                      categories={categories}
-                      onToggleSelect={handleToggleSelect}
-                      onSelectAll={handleSelectAll}
-                      onDeselectAll={handleDeselectAll}
-                      onRemoveImage={handleRemoveImage}
-                    />
-
-                    <CategoryAssigner
-                      selectedIds={selectedIds}
-                      existingCategories={categories}
-                      onAssignCategory={handleAssignCategory}
-                      onRemoveCategory={handleRemoveCategory}
-                    />
-
-                    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
-                      <GridSizePicker
-                        selected={gridConfig}
-                        onSelect={setGridConfig}
-                      />
-
-                      <button
-                        onClick={() => setStep("board")}
-                        disabled={selectedIds.size === 0}
-                        className="w-full py-3 rounded-lg bg-black text-white font-medium text-sm
-                          hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                      >
-                        Generate Board ({selectedIds.size} photo
-                        {selectedIds.size !== 1 ? "s" : ""})
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {step === "board" && (
-              <div className="space-y-4">
-                <div className="print:hidden bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-                  <GridSizePicker
-                    selected={gridConfig}
-                    onSelect={setGridConfig}
-                  />
-                </div>
-                <BoardPreview
-                  images={selectedImages}
-                  gridConfig={gridConfig}
-                  projectTitle={projectTitle}
-                />
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Vendor Tracking Tab */}
-        {activeTab === "vendor-tracking" && (
-          <VendorTrackingTab
-            entries={vendorTracking.entries}
-            projectTitle={projectTitle}
-            onAddEntry={vendorTracking.addEntry}
-            onCheckOut={vendorTracking.checkOut}
-            onRemoveEntry={vendorTracking.removeEntry}
-          />
-        )}
-      </main>
+      </div>
     </div>
   );
 }

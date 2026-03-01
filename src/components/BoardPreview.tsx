@@ -1,13 +1,16 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import type { ImageItem } from "@/types";
+import type { ImageItem, AnnotationRecord } from "@/types";
 import type { GridConfig } from "@/types";
+import AnnotationOverlay from "@/components/AnnotationOverlay";
 
 interface BoardPreviewProps {
   images: ImageItem[];
   gridConfig: GridConfig;
   projectTitle: string;
+  annotations?: AnnotationRecord[];
+  imageUrlPrefix?: string;
 }
 
 interface Section {
@@ -19,7 +22,17 @@ export default function BoardPreview({
   images,
   gridConfig,
   projectTitle,
+  annotations,
+  imageUrlPrefix,
 }: BoardPreviewProps) {
+  const annotationMap = useMemo(() => {
+    if (!annotations) return null;
+    const map = new Map<string, AnnotationRecord>();
+    for (const a of annotations) {
+      map.set(String(a.image_id), a);
+    }
+    return map;
+  }, [annotations]);
   const perPage = gridConfig.cols * gridConfig.rows;
   const pagesRef = useRef<(HTMLDivElement | null)[]>([]);
   const [saving, setSaving] = useState(false);
@@ -165,13 +178,21 @@ export default function BoardPreview({
               {page.images.map((img) => (
                 <div
                   key={img.id}
-                  className="relative overflow-hidden border-[0.5px] border-gray-100 flex items-center justify-center bg-white p-2"
+                  className={`relative overflow-hidden border-[0.5px] border-gray-100 flex items-center justify-center bg-white p-2 ${
+                    annotationMap && !annotationMap.get(img.id)?.selected ? "opacity-40" : ""
+                  }`}
                 >
                   <img
-                    src={img.url}
+                    src={imageUrlPrefix ? `${imageUrlPrefix}/${img.id}` : img.url}
                     alt=""
                     className="max-w-full max-h-full object-contain"
                   />
+                  {annotationMap && (
+                    <AnnotationOverlay
+                      selected={annotationMap.get(img.id)?.selected === 1}
+                      note={annotationMap.get(img.id)?.note}
+                    />
+                  )}
                 </div>
               ))}
               {/* Fill empty cells on last page of section */}
